@@ -1,0 +1,435 @@
+CREATE TABLE Asiakas(
+  asiakasID CHAR(20) PRIMARY KEY,
+  nimi VARCHAR(100) NOT NULL,
+  osoite CHAR(100),
+  sposti CHAR(100),
+  puhelin CHAR(20)
+);
+
+CREATE TABLE Ajoneuvo(
+  rekisteriNo CHAR(10) PRIMARY KEY,
+  merkki VARCHAR(100),
+  malli VARCHAR(100),
+  vuosi INT
+);
+
+CREATE TABLE Työntekijä(
+  hetu CHAR(20) PRIMARY KEY,
+  nimi
+);
+
+CREATE TABLE Huolto(
+  huoltoNo INT PRIMARY KEY,
+  huoltoAlku CHAR(20),
+  huoltoLoppu CHAR(20) CHECK (huoltoAlku <= huoltoLoppu OR huoltoLoppu=NULL),
+  ohjelmaID CHAR(10) REFERENCES HuoltoOhjelmat(ohjelmaID),
+  rekisteriNo CHAR(10) REFERENCES Ajoneuvo(rekisteriNo),
+  tilaajaID CHAR(20) REFERENCES Asiakas(asiakasID),
+  työntekijäHetu CHAR(20) REFERENCES Työntekijä(hetu)
+);
+
+CREATE TABLE HuoltoOhjelmat(
+  ohjelmaID CHAR(10) PRIMARY KEY,
+  ohjelmanimi CHAR(100) UNIQUE,
+  tyyppi CHAR(17) CHECK(tyyppi IN ('korjaus', 'määräaikaishuolto'))
+);
+
+CREATE TABLE Lasku(
+  laskuID CHAR(10) PRIMARY KEY,
+  summa REAL,
+  eräpäivä CHAR(10),
+  tila CHAR(10) DEFAULT ‘maksamatta’ CHECK(tila IN ('maksettu', 'maksamatta')),
+  maksettuOsuus REAL DEFAULT 0 CHECK((maksettuOsuus < summa AND tila='maksamatta') OR (maksettuOsuus = summa AND tila='maksettu')),
+  huoltoNo INT REFERENCES Huolto(huoltoNo)
+);
+
+CREATE TABLE Maksumuistutus (
+  muistutuskerta INT,
+  laskuID CHAR(10) REFERENCES Lasku(laskuID),
+  lisämaksu REAL DEFAULT 5.00,
+  eräpäivä CHAR(10),
+  tila CHAR(10) CHECK(tila IN ('maksettu', 'maksamatta')),
+  PRIMARY KEY (muistutuskerta, laskuID)
+);
+
+CREATE TABLE Varaosa (
+  tuotenimi CHAR(100) PRIMARY KEY,
+  hinta REAL
+);
+
+CREATE TABLE Osat (
+  tuotenimi CHAR(100) REFERENCES Varaosa(tuotenimi),
+  huoltoNo INT REFERENCES Huolto(huoltoNo),
+  lukumäärä INT,
+  PRIMARY KEY (tuotenimi, huoltoNo)
+);
+
+CREATE TABLE AutonOmistaja (
+  asiakasID CHAR(20) REFERENCES Asiakas(asiakasID),
+  rekisteriNo CHAR(10) REFERENCES Ajoneuvo(rekisteriNo),
+  PRIMARY KEY (asiakasID, rekisteriNo)
+);
+
+CREATE TABLE Poissaolo (
+  alkamisaika CHAR(20),
+  päättymisaika CHAR(20),
+  hetu CHAR(20) REFERENCES Työntekijä(hetu),
+  PRIMARY KEY (alkamisaika, hetu)
+);
+
+CREATE TABLE Määräaikaishuolto (
+  merkki VARCHAR(100),
+  malli VARCHAR(100),
+  vuosi INT,
+  kilometrit INT,
+  ohjelmaID CHAR(10) REFERENCES HuoltoOhjelmat(ohjelmaID),
+  PRIMARY KEY (merkki, malli, vuosi, kilometrit)
+);
+
+CREATE TABLE Ohjelmatoimenpiteet (
+  ohjelmaID CHAR(10) REFERENCES HuoltoOhjelmat(ohjelmaID),
+  toimenpideNimi CHAR(100) REFERENCES Toimenpide(toimenpideNimi)
+);
+
+CREATE TABLE Toimenpide (
+  toimenpideNimi CHAR(100) PRIMARY KEY,
+  kesto INT NOT NULL
+);
+
+CREATE TABLE Toimenpidevaraus (
+  toimenpideNimi CHAR(100) REFERENCES Toimenpide(toimenpideNimi),
+  huoltoNo INT REFERENCES Huolto(huoltoNo),
+  alku CHAR(20) NOT NULL,
+  PRIMARY KEY (toimenpideNimi, huoltoNo)
+);
+
+CREATE TABLE Laitetyyppi(
+  laitemalli CHAR(100) PRIMARY KEY
+);
+
+CREATE TABLE Laite(
+  laiteNo INT PRIMARY KEY,
+  laitemalli CHAR(100) REFERENCES Laitetyyppi(laitemalli)
+);
+
+CREATE TABLE Laitevaraus(
+  toimenpideNimi CHAR(100) REFERENCES Toimenpide(toimenpideNimi),
+  laiteNo INT REFERENCES Laite(laiteNo),
+  huoltoNo INT REFERENCES Huolto(huoltoNo),
+  PRIMARY KEY (toimenpideNimi, laiteNo, huoltoNo)
+);
+
+CREATE TABLE Laitevaatimus (
+  toimenpideNimi CHAR(100) REFERENCES Toimenpide(toimenpideNimi),
+  laitemalli CHAR(100) REFERENCES Laitetyyppi(laitemalli),
+  PRIMARY KEY (toimenpideNimi, laitemalli)
+);
+
+
+
+INSERT INTO Ajoneuvo VALUES ('ABC-123','Renault','Clio', 2016);
+INSERT INTO Ajoneuvo VALUES ('FJH-430','Renault','Megane', 2006);
+INSERT INTO Ajoneuvo VALUES ('AOF-682','Nissan', 'Qashqai', 2013);
+INSERT INTO Ajoneuvo VALUES ('SLF-180','Volkswagen','Golf', 2021);
+INSERT INTO Ajoneuvo VALUES ('VGY-750', 'Toyota', 'Corolla', 1998);
+INSERT INTO Ajoneuvo VALUES ('VNS-023', 'Tesla', 'Model 3', 2022);
+INSERT INTO Ajoneuvo VALUES ('RIK-45', 'Lamborghini', 'Aventador', 2019);
+INSERT INTO Ajoneuvo VALUES ('SVF-034', 'Volkswagen', 'Polo', 2013);
+INSERT INTO Ajoneuvo VALUES ('FJS-542', 'Volkswagen', 'Polo', 2001);
+INSERT INTO Ajoneuvo VALUES ('SDG-158', 'Volkswagen', 'Passat', 2008);
+INSERT INTO Ajoneuvo VALUES ('SSG-128', 'Volkswagen', 'Passat', 2009);
+INSERT INTO Ajoneuvo VALUES ('FIA-750', 'Fiat', '500', 2015);
+
+INSERT INTO Asiakas VALUES ('1234', 'Mikael Rönnholm', 'Jämeräntaival 11 J27, 02150 Espoo', 'feikki.sposti@gmail.com', '0405675675');
+INSERT INTO Asiakas VALUES ('2234', 'Pauli Lahtinen', 'Maurinkatu 4 B20, 00170 Helsinki', 'ebin.ukkeli@gmail.com', '0445180756');
+INSERT INTO Asiakas VALUES ('007', 'James Bond', 'TOP SECRET', 'secret.agent@MI6.uk', '+44 05303401');
+INSERT INTO Asiakas VALUES ('2004', 'Pablo Escobar', 'Calle Blanca 42, 73500 Medellin', 'pabloemilio@hotmail.com', '+124 03450135');
+INSERT INTO Asiakas VALUES ('3462', 'Kalle Automies', 'Kaaharinkatu 8', 'kalle@gmail.com', '040 050 0607');
+INSERT INTO Asiakas VALUES ('7863', 'Sanna Marin', 'Mannerheimintie 54, Helsinki', 'miauuu.sanna@hallitus.fi','+358 50 670 8356');
+
+INSERT INTO AutonOmistaja VALUES ('1234', 'ABC-123');
+INSERT INTO AutonOmistaja VALUES ('1234', 'FJH-430');
+INSERT INTO AutonOmistaja VALUES ('1234', 'AOF-682');
+INSERT INTO AutonOmistaja VALUES ('1234', 'SLF-180');
+INSERT INTO AutonOmistaja VALUES ('2234', 'VGY-750');
+INSERT INTO AutonOmistaja VALUES ('2234', 'VNS-023');
+INSERT INTO AutonOmistaja VALUES ('2234', 'RIK-45');
+INSERT INTO AutonOmistaja VALUES ('007', 'AOF-682');
+INSERT INTO AutonOmistaja VALUES ('007', 'FIA-750');
+INSERT INTO AutonOmistaja VALUES ('2004', 'SVF-034');
+INSERT INTO AutonOmistaja VALUES ('3462', 'FJS-542');
+INSERT INTO AutonOmistaja VALUES ('3462', 'SDG-158');
+INSERT INTO AutonOmistaja VALUES ('3462', 'SSG-128');
+
+INSERT INTO Laitetyyppi VALUES ('pulttipyssy');
+INSERT INTO Laitetyyppi VALUES ('hitsauskone');
+INSERT INTO Laitetyyppi VALUES ('pilarinosturi');
+INSERT INTO Laitetyyppi VALUES ('tunkki');
+INSERT INTO Laitetyyppi VALUES ('kompressori');
+INSERT INTO Laitetyyppi VALUES ('rengaskone');
+
+INSERT INTO Työntekijä VALUES ('140293-5712', 'Veera Immonen');
+INSERT INTO Työntekijä VALUES ('140293-5123', 'Verner Immonen');
+INSERT INTO Työntekijä VALUES ('220975-7345', 'Tommi Työläs');
+INSERT INTO Työntekijä VALUES ('010698-7425', 'Antti Herlin');
+INSERT INTO Työntekijä VALUES ('041103A6745', 'Keijo Kesämies');
+
+INSERT INTO Poissaolo VALUES ('2022-06-01', '2022-06-14', '041103A6745');
+INSERT INTO Poissaolo VALUES ('2022-05-01', '2022-06-14', '140293-5123');
+INSERT INTO Poissaolo VALUES ('2022-08-01', '2022-08-14', '010698-7425');
+
+INSERT INTO Laite VALUES (1, 'pulttipyssy');
+INSERT INTO Laite VALUES (2, 'pulttipyssy');
+INSERT INTO Laite VALUES (3, 'pulttipyssy');
+INSERT INTO Laite VALUES (4, 'hitsauskone');
+INSERT INTO Laite VALUES (5, 'hitsauskone');
+INSERT INTO Laite VALUES (6, 'pilarinosturi');
+INSERT INTO Laite VALUES (7, 'pilarinosturi');
+INSERT INTO Laite VALUES (8, 'tunkki');
+INSERT INTO Laite VALUES (9, 'tunkki');
+INSERT INTO Laite VALUES (10, 'tunkki');
+INSERT INTO Laite VALUES (11, 'tunkki');
+INSERT INTO Laite VALUES (12, 'kompressori');
+INSERT INTO Laite VALUES (13, 'kompressori');
+INSERT INTO Laite VALUES (14, 'kompressori');
+INSERT INTO Laite VALUES (15, 'rengaskone');
+
+INSERT INTO Varaosa VALUES ('tuulilasi', 200);
+INSERT INTO Varaosa VALUES ('talvirengas', 40);
+INSERT INTO Varaosa VALUES ('kesärengas', 40);
+INSERT INTO Varaosa VALUES ('jarrulevy', 25);
+INSERT INTO Varaosa VALUES ('jarrupala', 25);
+INSERT INTO Varaosa VALUES ('alatukivarsi', 40);
+INSERT INTO Varaosa VALUES ('led-polttimo', 5);
+INSERT INTO Varaosa VALUES ('jakopäähihna', 150);
+INSERT INTO Varaosa VALUES ('öljy', 10);
+
+INSERT INTO Toimenpide VALUES ('tuulilasin vaihto', 30);
+INSERT INTO Toimenpide VALUES ('renkaanvaihto', 10);
+INSERT INTO Toimenpide VALUES ('jarrujen korjaus', 40);
+INSERT INTO Toimenpide VALUES ('tukivarren korjaus', 30);
+INSERT INTO Toimenpide VALUES ('öljyjen vaihto', 10);
+INSERT INTO Toimenpide VALUES ('jakopäähihnan vaihto', 20);
+
+INSERT INTO HuoltoOhjelmat VALUES('123', 'satasen Clio', 'määräaikaishuolto');
+INSERT INTO HuoltoOhjelmat VALUES('456', 'satasen Megane', 'määräaikaishuolto');
+INSERT INTO HuoltoOhjelmat VALUES('789', 'satasen Golf', 'määräaikaishuolto');
+INSERT INTO HuoltoOhjelmat VALUES('987', 'satasen Qashqai', 'määräaikaishuolto');
+INSERT INTO HuoltoOhjelmat VALUES('654', 'ratamestarin erikoinen', 'korjaus');
+INSERT INTO HuoltoOhjelmat VALUES('321', 'Jaskan bravuuri', 'korjaus');
+INSERT INTO HuoltoOhjelmat VALUES('234', 'sekakäyttäjän shotti', 'korjaus');
+INSERT INTO HuoltoOhjelmat VALUES('345', 'HIRVI', 'korjaus');
+
+INSERT INTO Määräaikaishuolto VALUES('Renault', 'Clio', 2016, 100000, '123');
+INSERT INTO Määräaikaishuolto VALUES('Renault', 'Megane', 2006, 100000, '456');
+INSERT INTO Määräaikaishuolto VALUES('Nissan', 'Qashqai', 2016, 100000, '987');
+INSERT INTO Määräaikaishuolto VALUES('Volkswagen', 'Golf', 2021, 100000, '789');
+
+INSERT INTO Ohjelmatoimenpiteet VALUES ('123', 'jakopäähihnan vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('123', 'öljyjen vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('123', 'jarrujen korjaus');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('456', 'jakopäähihnan vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('456', 'jarrujen korjaus');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('789', 'jarrujen korjaus');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('987', 'öljyjen vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('654', 'renkaanvaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('654', 'tukivarren korjaus');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('321', 'tuulilasin vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('321', 'öljyjen vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('321', 'renkaanvaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('234', 'renkaanvaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('234', 'tuulilasin vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('345', 'tuulilasin vaihto');
+INSERT INTO Ohjelmatoimenpiteet VALUES ('345', 'jarrujen korjaus');
+
+INSERT INTO Huolto VALUES (00001, '2022-05-10 08:00:00', '2022-05-10 09:10:00', '123', 'ABC-123', '1234', '140293-5712');
+INSERT INTO Huolto VALUES (00002, '2022-05-11 09:00:00', '2022-05-11 09:40:00', '654', 'RIK-45', '7863', '010698-7425');
+INSERT INTO Huolto VALUES (00003, '2022-05-11 10:00:00', '2022-05-11 10:50:00', '321', 'AOF-682', '007', '010698-7425');
+INSERT INTO Huolto VALUES (00012, '2022-04-11 09:00:00', '2022-04-11 09:40:00', '234', 'RIK-45', '7863', '010698-7425');
+INSERT INTO Huolto VALUES (01012, '2022-04-11 10:00:00', NULL, '345', 'SDG-158', '007', '220975-7345');
+INSERT INTO Huolto VALUES (00004, '2022-06-01 09:00:00', '2022-06-01 13:40:00', NULL, 'RIK-45', '7863', '010698-7425');
+
+INSERT INTO Laitevaatimus VALUES ('renkaanvaihto', 'tunkki');
+INSERT INTO Laitevaatimus VALUES ('renkaanvaihto', 'kompressori');
+INSERT INTO Laitevaatimus VALUES ('jarrujen korjaus', 'tunkki');
+INSERT INTO Laitevaatimus VALUES ('tukivarren korjaus', 'pilarinosturi');
+INSERT INTO Laitevaatimus VALUES ('tukivarren korjaus', 'hitsauskone');
+
+INSERT INTO Osat VALUES ('jarrulevy', 00001, 4);
+INSERT INTO Osat VALUES ('jarrupala', 00001, 8);
+INSERT INTO Osat VALUES ('jakopäähihna', 00001, 1);
+INSERT INTO Osat VALUES ('öljy', 00001, 1);
+INSERT INTO Osat VALUES ('kesärengas', 00002, 1);
+INSERT INTO Osat VALUES ('alatukivarsi', 00002, 1);
+INSERT INTO Osat VALUES ('öljy', 00003, 1);
+INSERT INTO Osat VALUES ('tuulilasi', 00003, 1);
+INSERT INTO Osat VALUES ('talvirengas', 00003, 4);
+INSERT INTO Osat VALUES ('kesärengas', 00012, 1);
+INSERT INTO Osat VALUES ('tuulilasi', 00012, 1);
+INSERT INTO Osat VALUES ('tuulilasi', 01012, 1);
+
+INSERT INTO Lasku VALUES (20001, 500, '2022-04-25', 'maksamatta', 400, 01012);
+INSERT INTO Lasku VALUES (20003, 260, '2022-05-25', 'maksamatta', 0, 00003);
+
+INSERT INTO Maksumuistutus VALUES (1, 20001, 10,'2022-04-25', 'maksettu');
+
+INSERT INTO Toimenpidevaraus VALUES ('renkaanvaihto', 00002, '2022-05-11 09:30:00');
+INSERT INTO Toimenpidevaraus VALUES ('tukivarren korjaus', 00002, '2022-05-11 09:00:00');
+INSERT INTO Toimenpidevaraus VALUES ('jakopäähihnan vaihto', 00001, '2022-05-10 08:00:00');
+INSERT INTO Toimenpidevaraus VALUES ('jarrujen korjaus', 00001, '2022-05-10 08:20:00');
+INSERT INTO Toimenpidevaraus VALUES ('öljyjen vaihto', 00001, '2022-05-10 09:00:00');
+INSERT INTO Toimenpidevaraus VALUES ('tuulilasin vaihto', 00003, '2022-05-11 10:00:00');
+INSERT INTO Toimenpidevaraus VALUES ('öljyjen vaihto', 00003, '2022-05-11 10:30:00');
+INSERT INTO Toimenpidevaraus VALUES ('renkaanvaihto', 00003, '2022-05-11 10:40:00');
+INSERT INTO Toimenpidevaraus VALUES ('renkaanvaihto', 00012, '2022-04-11 09:00:00');
+INSERT INTO Toimenpidevaraus VALUES ('tuulilasin vaihto', 00012, '2022-04-11 09:10:00');
+INSERT INTO Toimenpidevaraus VALUES ('tuulilasin vaihto', 01012, '2022-04-11 10:00:00');
+INSERT INTO Toimenpidevaraus VALUES ('jarrujen korjaus', 01012, '2022-06-11 12:00:00');
+
+INSERT INTO Laitevaraus VALUES ('renkaanvaihto', 11, 00002);
+INSERT INTO Laitevaraus VALUES ('renkaanvaihto', 12, 00002);
+INSERT INTO Laitevaraus VALUES ('tukivarren korjaus', 6, 00002);
+INSERT INTO Laitevaraus VALUES ('tukivarren korjaus', 4, 00002);
+INSERT INTO Laitevaraus VALUES ('jarrujen korjaus', 8, 00001);
+INSERT INTO Laitevaraus VALUES ('renkaanvaihto', 11, 00003);
+INSERT INTO Laitevaraus VALUES ('renkaanvaihto', 12, 00003);
+INSERT INTO Laitevaraus VALUES ('renkaanvaihto', 9, 00012);
+INSERT INTO Laitevaraus VALUES ('renkaanvaihto', 13, 00012);
+INSERT INTO Laitevaraus VALUES ('jarrujen korjaus', 10, 01012);
+
+CREATE INDEX ToimvarausIndex ON Toimenpidevaraus(huoltoNo);
+CREATE INDEX LaitevarausIndex ON Laitevaraus(huoltoNo);
+CREATE INDEX OsaIndex ON Osat(huoltoNo);
+
+CREATE VIEW Kokonaislasku AS
+SELECT tilaajaID, SUM(yhteissumma)
+FROM Huolto NATURAL JOIN (
+  SELECT COALESCE(sakko, 0) + summa-maksettuOsuus AS yhteissumma, huoltoNo
+  FROM Lasku AS L LEFT OUTER JOIN (SELECT SUM(lisämaksu) AS sakko, laskuID FROM Maksumuistutus GROUP BY laskuID) AS M ON L.laskuID=M.laskuID
+  WHERE yhteissumma > 0
+)
+GROUP BY tilaajaID ;
+
+
+CREATE VIEW Kalenteri AS
+SELECT alkamisaika AS alku, loppumisaika AS loppu, hetu
+FROM Poissaolo
+UNION
+SELECT huoltoAlku AS alku, huoltoLoppu AS loppu, työntekijäHetu AS hetu;
+
+SELECT huoltoNo, rekisteriNo, toimenpideNimi, kesto
+FROM Huolto NATURAL JOIN Toimenpidevaraus NATURAL JOIN Toimenpide
+WHERE huoltoNo IN
+   (SELECT max(huoltoNo)
+   FROM Huolto
+   WHERE rekisteriNo = 'AOF-682'
+   );
+   
+SELECT huoltoNo, tuoteNimi, lukumäärä, hinta
+FROM Osat NATURAL JOIN Varaosa
+WHERE huoltoNo = 3;
+
+SELECT LaskuID, summa, tila, eräpäivä, maksettuOsuus, nimi, puhelin, sposti
+FROM Huolto NATURAL JOIN Lasku, Asiakas
+WHERE rekisteriNo = 'AOF-682' AND tilaajaID = asiakasID;
+
+SELECT laitemalli, laiteNo
+FROM Laite
+WHERE laiteNo NOT IN
+   (SELECT laiteNo
+   FROM Laite NATURAL JOIN Laitevaraus, Toimenpidevaraus NATURAL JOIN Toimenpide
+   WHERE Toimenpidevaraus.huoltoNo = Laitevaraus.huoltoNo AND
+       (alku BETWEEN '2022-05-11 09:00:00' AND '2022-05-11 11:00:00') OR
+       (datetime(julianday(alku) +kesto/(60.0*24)) BETWEEN '2022-5-11 09:00:00' AND '2022-5-11 11:00:00') OR
+       ('2022-5-11 09:00:00' BETWEEN alku AND datetime(julianday(alku) + kesto/(60.0*24))) OR
+       ('2022-5-11 11:00:00' BETWEEN alku AND datetime(julianday(alku) + kesto/(60.0*24)))
+   );  
+   
+SELECT nimi
+FROM Työntekijä
+WHERE nimi NOT IN
+   (SELECT nimi
+   FROM Työntekijä as T, Huolto as H
+   WHERE T.hetu=H.työntekijäHetu AND
+       (
+       (huoltoAlku BETWEEN '2022-06-01 12:00:00' AND '2022-06-01 13:00:00')
+       OR
+       (huoltoLoppu BETWEEN '2022-06-01 12:00:00' AND '2022-06-01 13:00:00')
+       OR
+       ('2022-06-01 12:00:00' BETWEEN huoltoAlku AND huoltoLoppu)
+       OR
+       ('2022-06-01 13:00:00' BETWEEN huoltoAlku AND huoltoLoppu)
+   ))
+AND nimi NOT IN
+   (SELECT nimi
+   FROM Työntekijä NATURAL JOIN Poissaolo
+   WHERE '2022-06-01' BETWEEN alkamisaika AND päättymisaika);
+   
+SELECT laitemalli
+FROM Laitevaatimus
+WHERE toimenpideNimi='renkaanvaihto';
+
+SELECT COUNT(huoltoNo)
+FROM Huolto
+WHERE huoltoLoppu BETWEEN '2022-04-01 00:00:00' AND  '2022-06-30 23:59:00';
+
+SELECT COUNT(*)
+FROM Huolto NATURAL JOIN Toimenpidevaraus
+WHERE huoltoLoppu BETWEEN '2022-04-01 00:00:00' AND  '2022-06-30 23:59:00';
+
+SELECT merkki, COUNT(merkki) as total
+FROM Ajoneuvo NATURAL JOIN Huolto
+GROUP BY merkki
+HAVING total = (
+   SELECT max(amount)
+   FROM (
+   SELECT merkki, COUNT(merkki) as amount
+   FROM Ajoneuvo NATURAL JOIN Huolto
+   GROUP BY merkki )
+   );
+
+SELECT tilaajaID, SUM(yhteissumma)
+FROM Huolto NATURAL JOIN (
+   SELECT COALESCE(sakko, 0) + summa-maksettuOsuus AS yhteissumma, huoltoNo
+   FROM Lasku AS L LEFT OUTER JOIN (SELECT SUM(lisämaksu) AS sakko, laskuID FROM Maksumuistutus GROUP BY laskuID) AS M ON L.laskuID=M.laskuID
+   WHERE yhteissumma > 0
+)
+GROUP BY tilaajaID ;
+
+SELECT huoltoNo
+FROM Huolto
+WHERE huoltoNo NOT IN (
+   SELECT huoltoNo
+   FROM Lasku);
+
+SELECT Y AS 'Varaosien hinta', ROUND(S/60.0*75 , 2) AS 'Työt (75€/tunti)', ROUND(S/60.0*75+Y , 2) AS Yhteensä
+FROM (
+  SELECT SUM(lukumäärä*hinta) AS Y, huoltoNo
+  FROM Osat NATURAL JOIN Varaosa
+  WHERE huoltoNo=1
+  ) NATURAL JOIN (
+  SELECT huoltoNo, SUM(kesto) as S
+  FROM Toimenpide NATURAL JOIN Toimenpidevaraus
+  WHERE huoltoNo=1);
+
+SELECT alkamisaika, päättymisaika
+FROM Poissaolo, Työntekijä
+WHERE Poissaolo.hetu=Työntekijä.hetu AND Työntekijä.nimi='Antti Herlin';
+
+SELECT hinta
+FROM Varaosa
+WHERE tuotenimi='jarrupala';
+
+SELECT tuotenimi, SUM(lukumäärä) AS Total
+FROM Osat
+WHERE huoltoNo IN (
+   SELECT huoltoNo
+   FROM Huolto
+   WHERE DATE(huoltoLoppu) BETWEEN '2022-05-01' AND '2022-05-31')
+GROUP BY tuotenimi
+
+
+
+
+
+
